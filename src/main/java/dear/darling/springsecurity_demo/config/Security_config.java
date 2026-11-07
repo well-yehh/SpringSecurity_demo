@@ -1,13 +1,16 @@
 package dear.darling.springsecurity_demo.config;
 
 
+import dear.darling.springsecurity_demo.Service.JWTservice;
 import dear.darling.springsecurity_demo.Service.MyUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -17,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
 //If we are implimenting this then make sure secure whole thing by our own spring will use it as it security barrier from now
@@ -29,42 +33,30 @@ public class Security_config {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private JwtFilter jwtFilter;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
 
         return http
                 .csrf(customizer -> customizer.disable())
-                .authorizeHttpRequests(request -> request.anyRequest().authenticated())
-                .authenticationProvider(authenticationProvider())
+                .authorizeHttpRequests(request -> request
+                        .requestMatchers("/api/register", "/api/login")
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated())
 //                .formLogin(Customizer.withDefaults()) //Login form implemented
                 .httpBasic(Customizer.withDefaults()) // for using it in PostMan
 
                 //Making the http request stateless , (csrf disabling)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build(); //return the object of security filter chain
 
 
     }
- //   To fetch username and password from the database not using default by spring security
-//    Returning our own user detail service
-        //    @Bean
-        //    public UserDetailsService userDetailsService(){
-        //        UserDetails user1 = User
-        //                .withDefaultPasswordEncoder()
-        //                .username("ramu")
-        //                .password("22112")
-        //                .roles("USER")
-        //                .build();
-        //
-        //        UserDetails user2 = User
-        //                .withDefaultPasswordEncoder()
-        //                .username("harsh")
-        //                .password("11221")
-        //                .roles("ADMIN")
-        //                .build();
-        //        return new InMemoryUserDetailsManager(user1 , user2);
-        //    }
 
     //Autherising using DATABASE
 
@@ -78,6 +70,12 @@ public class Security_config {
         provider.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
 
         return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception{
+
+       return config.getAuthenticationManager();
     }
 
 }

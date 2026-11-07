@@ -21,4 +21,11 @@ public class userController {
         return repo.findAll();
     }
 
+
+    @PostMapping("/login")
+    public String login(@RequestBody Users user){
+
+        return service.verify(user);
+    }
+
 }
